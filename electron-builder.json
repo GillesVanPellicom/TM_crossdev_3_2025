@@ -1,0 +1,17 @@
+{
+  "appId": "com.example.calculator",
+  "productName": "Calculator",
+  "files": [
+    "dist/",
+    "node_modules/",
+    "package.json",
+    "main.js",
+    "preload.js"
+  ],
+  "mac": {
+    "target": "squirrel"
+  },
+  "win": {
+    "target": "squirrel"
+  }
+}
