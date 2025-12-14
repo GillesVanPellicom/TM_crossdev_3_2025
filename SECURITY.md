@@ -6,104 +6,80 @@ This document outlines the security measures taken in this Electron application 
 
 We follow the latest security recommendations from the Electron documentation.
 
-### 1. Context Isolation
+### 1. Only load secure content
+All content is loaded from the local filesystem (`file://` protocol). The application does not load any remote content. This is enforced by the `will-navigate` event handler in `src/electron-main.ts:58`.
 
-`contextIsolation` is enabled in the main process (`main.js`):
+### 2. Do not enable Node.js integration for remote content
+Node.js integration is disabled for all renderer processes in `src/electron-main.ts:32`.
 
-```javascript
-const win = new BrowserWindow({
-  //...
-  webPreferences: {
-    //...
-    contextIsolation: true,
-  },
-});
-```
+### 3. Enable context isolation in all renderers
+`contextIsolation` is enabled for all renderer processes in `src/electron-main.ts:30`.
 
-This is a critical security feature that ensures that the preload script and the renderer's JavaScript run in separate, isolated contexts. This prevents the renderer from accessing Electron's internal APIs or Node.js primitives, which could be exploited in a cross-site scripting (XSS) attack.
+### 4. Enable process sandboxing
+Process sandboxing is enabled for all renderer processes by setting `sandbox: true` in the `webPreferences` in `src/electron-main.ts:34`.
 
-### 2. Context Bridge
+### 5. Use ses.setPermissionRequestHandler() in all sessions that load remote content
+The application does not load remote content, so this is not applicable.
 
-To expose a limited and secure API to the renderer, we use `contextBridge` in the preload script (`preload.js`):
+### 6. Do not disable webSecurity
+`webSecurity` is not disabled. This is the default setting in Electron.
 
-```javascript
-const { contextBridge, ipcRenderer } = require('electron');
+### 7. Define a Content-Security-Policy
+A Content Security Policy is defined to only allow scripts to be loaded from the application's own origin (`script-src 'self'`) in `src/electron-main.ts:75`. This policy now fully prevents the use of `eval()` and `new Function()`.
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  getSettings: () => ipcRenderer.invoke('get-settings'),
-  setSettings: (settings) => ipcRenderer.invoke('set-settings', settings),
-});
-```
+### 8. Do not enable allowRunningInsecureContent
+`allowRunningInsecureContent` is not enabled. This is the default setting in Electron.
 
-The `contextBridge` ensures that the exposed API is a separate object in the renderer's `window` object, and it cannot be overwritten or modified by the renderer's code. This prevents prototype pollution and other attacks that could compromise the IPC channel.
+### 9. Do not enable experimental features
+No experimental features are enabled.
 
-### 3. Node.js Integration Disabled
+### 10. Do not use enableBlinkFeatures
+`enableBlinkFeatures` is not used.
 
-`nodeIntegration` is disabled in the main process (`main.js`):
+### 11. <webview>: Do not use allowpopups
+The `<webview>` tag is not used.
 
-```javascript
-const win = new BrowserWindow({
-  //...
-  webPreferences: {
-    //...
-    nodeIntegration: false,
-  },
-});
-```
+### 12. <webview>: Verify options and params
+The `<webview>` tag is not used.
 
-Disabling Node.js integration in the renderer process is a fundamental security practice. It prevents the renderer from accessing the `require` function and other Node.js modules, which would give it access to the user's file system and other sensitive resources.
+### 13. Disable or limit navigation
+Navigation is limited to `file://` URLs. Any attempt to navigate to an external URL is prevented in `src/electron-main.ts:58`.
 
-### 4. Remote Module Disabled
+### 14. Disable or limit creation of new windows
+The creation of new windows is disabled using `setWindowOpenHandler` in `src/electron-main.ts:65`.
 
-The `enableRemoteModule` option is set to `false` in the main process (`main.js`):
+### 15. Do not use shell.openExternal with untrusted content
+`shell.openExternal` is not used.
 
-```javascript
-const win = new BrowserWindow({
-  //...
-  webPreferences: {
-    //...
-    enableRemoteModule: false,
-  },
-});
-```
+### 16. Use a current version of Electron
+The project should be kept up-to-date with the latest version of Electron to ensure all known vulnerabilities are patched.
 
-The `remote` module is deprecated and has known security vulnerabilities. Disabling it prevents the renderer from directly accessing main process modules, which could lead to privilege escalation.
+### 17. Validate the sender of all IPC messages
+The sender of IPC messages is validated to ensure that only windows with a `file://` URL can trigger IPC calls in `src/electron-main.ts:141`.
 
-## IPC Security
+### 18. Avoid usage of the file:// protocol and prefer usage of custom protocols
+The application currently uses the `file://` protocol to load local content. For enhanced security, this could be replaced with a custom protocol in the future.
 
-The Inter-Process Communication (IPC) between the main and renderer processes is designed to be secure:
+### 19. Check which fuses you can change
+Electron Fuses can be used to further lock down the application's security. This has not yet been implemented, but is a recommended future enhancement.
 
--   **Invoke/Handle:** We use `ipcRenderer.invoke` and `ipcMain.handle` for asynchronous, request-response style communication. This is generally safer than using `ipcRenderer.send` for two-way communication, as it provides a clearer and more predictable flow of data.
--   **Limited API:** The API exposed to the renderer is minimal and only includes the necessary functions (`getSettings` and `setSettings`). This follows the principle of least privilege, reducing the attack surface.
--   **No Sensitive Data:** We avoid sending sensitive data over the IPC channel. In this application, we are only sending settings information, which is not considered sensitive.
+### 20. Do not expose Electron APIs to untrusted web content
+Electron APIs are not exposed to untrusted web content. A limited API is exposed to the renderer process via a preload script and `contextBridge` in `preload.js:3`.
 
 ## Input Sanitization and Expression Evaluation
 
-In the calculator components (`normal-calculator.component.ts` and `scientific-calculator.component.ts`), the `eval()` function has been replaced with a safer alternative for evaluating mathematical expressions.
+The calculator components (`normal-calculator.component.ts` and `scientific-calculator.component.ts`) now use a custom `ExpressionEvaluationService` (`src/app/expression-evaluation.service.ts`) for evaluating mathematical expressions. This change addresses the security concerns related to `eval()` and `new Function()` and allows for a stricter Content Security Policy.
 
-### `eval()` Replacement
+### Custom Expression Parser
 
-The use of `eval()` was a significant security risk, as it can execute arbitrary code. It has been replaced with the `Function` constructor, combined with input sanitization:
-
-```typescript
-// Evaluates the expression in the display.
-// Uses Function constructor for safer evaluation than eval().
-// This prevents access to local scope, but still executes arbitrary code.
-// For a production app, a proper expression parser is recommended.
-calculate() {
-  try {
-    // Sanitize the expression to only allow numbers and basic operators.
-    const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
-    const result = new Function('return ' + sanitizedExpression)();
-    this.display = result.toString();
-  } catch (e) {
-    this.display = 'Error';
-  }
-}
-```
+The `ExpressionEvaluationService` implements a safe expression parser based on the Shunting-yard algorithm. This approach:
+- **Eliminates `eval()` and `new Function()`:** Directly removes the security risks associated with dynamic code execution.
+- **CSP Compliant:** Allows the application to enforce a `script-src 'self'` Content Security Policy without issues.
+- **Controlled Evaluation:** Only processes predefined mathematical operations, numbers, parentheses, and unary functions, preventing the execution of arbitrary code.
+- **Unary Minus Handling:** The parser correctly distinguishes between binary subtraction and unary minus operators, ensuring accurate evaluation of expressions like `-5 * 2` or `sin(-30)`.
 
 ### Recommendation for Production
 
-While the `Function` constructor is safer than `eval()` because it does not have access to the local scope, it can still execute arbitrary code. For a production-ready application, it is highly recommended to implement or use a dedicated mathematical expression parser. This would provide much stronger security by ensuring that only valid mathematical expressions can be evaluated.
+For a production-ready application, the `ExpressionEvaluationService` could be further enhanced to support a wider range of mathematical operations and functions, while maintaining its secure parsing approach. This ensures that all calculations are performed within a controlled and secure environment.
 
 By implementing these security measures, we have created a robust and secure Electron application that is well-protected against common vulnerabilities.

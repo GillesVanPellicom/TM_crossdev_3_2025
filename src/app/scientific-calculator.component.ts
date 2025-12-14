@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ExpressionEvaluationService } from './expression-evaluation.service';
 
 @Component({
   selector: 'app-scientific-calculator',
@@ -24,10 +25,12 @@ import { Component } from '@angular/core';
         <button (click)="append('3')">3</button>
         <button (click)="append('0')">0</button>
         <button (click)="append('.')">.</button>
-        <button (click)="scientific('sqrt')">√</button>
-        <button (click)="scientific('sin')">sin</button>
-        <button (click)="scientific('cos')">cos</button>
-        <button (click)="scientific('tan')">tan</button>
+        <button (click)="append('sqrt(')">√</button>
+        <button (click)="append('sin(')">sin</button>
+        <button (click)="append('cos(')">cos</button>
+        <button (click)="append('tan(')">tan</button>
+        <button (click)="append('(')">(</button>
+        <button (click)="append(')')">)</button>
       </div>
     </div>
   `,
@@ -81,6 +84,8 @@ export class ScientificCalculatorComponent {
   // The string currently displayed on the calculator screen.
   display = '';
 
+  constructor(private expressionEvaluationService: ExpressionEvaluationService) {}
+
   // Appends a value to the display string.
   append(value: string) {
     this.display += value;
@@ -91,43 +96,11 @@ export class ScientificCalculatorComponent {
     this.display = '';
   }
 
-  // Evaluates the expression in the display.
-  // Uses Function constructor for safer evaluation than eval().
-  // This prevents access to local scope, but still executes arbitrary code.
-  // For a production app, a proper expression parser is recommended.
+  // Evaluates the expression in the display using a safe expression parser.
   calculate() {
     try {
-      // Sanitize the expression to only allow numbers and basic operators.
-      const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
-      const result = new Function('return ' + sanitizedExpression)();
+      const result = this.expressionEvaluationService.evaluate(this.display);
       this.display = result.toString();
-    } catch (e) {
-      this.display = 'Error';
-    }
-  }
-
-  // Applies a scientific function to the current display value.
-  scientific(func: string) {
-    try {
-      const value = parseFloat(this.display);
-      // Apply the selected scientific function.
-      switch (func) {
-        case 'sqrt':
-          this.display = Math.sqrt(value).toString();
-          break;
-        case 'sin':
-          // Convert degrees to radians for Math.sin
-          this.display = Math.sin(value * Math.PI / 180).toString();
-          break;
-        case 'cos':
-          // Convert degrees to radians for Math.cos
-          this.display = Math.cos(value * Math.PI / 180).toString();
-          break;
-        case 'tan':
-          // Convert degrees to radians for Math.tan
-          this.display = Math.tan(value * Math.PI / 180).toString();
-          break;
-      }
     } catch (e) {
       this.display = 'Error';
     }

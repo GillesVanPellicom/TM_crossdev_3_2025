@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -24,6 +24,8 @@ function createWindow() {
       contextIsolation: true,
       // Disable Node.js integration in the renderer process.
       nodeIntegration: false,
+      // Enable process sandboxing.
+      sandbox: true,
     },
   });
 
@@ -39,12 +41,35 @@ function createWindow() {
   mainWindow.on('closed', function () {
     mainWindow = undefined;
   });
+
+  // Limit navigation to external websites.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault();
+    }
+  });
+
+  // Limit creation of new windows.
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
 }
 
 // Electron app lifecycle events.
 
-// Create the main window when the app is ready.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  // Set a Content Security Policy.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ["script-src 'self'"]
+      }
+    });
+  });
+
+  createWindow();
+});
 
 // Quit the app when all windows are closed, except on macOS.
 app.on('window-all-closed', function () {
@@ -92,7 +117,10 @@ ipcMain.handle('get-settings', (): Settings => {
 
 // Handle event from renderer to save new settings.
 ipcMain.on('set-settings', (event, settings: Settings) => {
-  saveSettings(settings);
+  // Verify the sender of the IPC message.
+  if (event.sender.getURL().startsWith('file://')) {
+    saveSettings(settings);
+  }
 });
 
 // Handle event from renderer to open the settings dialog.
@@ -113,6 +141,7 @@ ipcMain.on('open-settings-dialog', () => {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 

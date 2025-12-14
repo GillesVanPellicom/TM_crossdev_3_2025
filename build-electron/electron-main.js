@@ -52,6 +52,8 @@ function createWindow() {
             contextIsolation: true,
             // Disable Node.js integration in the renderer process.
             nodeIntegration: false,
+            // Enable process sandboxing.
+            sandbox: true,
         },
     });
     // Load the main HTML file of the Angular application.
@@ -64,10 +66,30 @@ function createWindow() {
     mainWindow.on('closed', function () {
         mainWindow = undefined;
     });
+    // Limit navigation to external websites.
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (!url.startsWith('file://')) {
+            event.preventDefault();
+        }
+    });
+    // Limit creation of new windows.
+    mainWindow.webContents.setWindowOpenHandler(() => {
+        return { action: 'deny' };
+    });
 }
 // Electron app lifecycle events.
-// Create the main window when the app is ready.
-electron_1.app.on('ready', createWindow);
+electron_1.app.on('ready', () => {
+    // Set a Content Security Policy.
+    electron_1.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': ["script-src 'self'"]
+            }
+        });
+    });
+    createWindow();
+});
 // Quit the app when all windows are closed, except on macOS.
 electron_1.app.on('window-all-closed', function () {
     // On macOS, it's common for applications to stay active until the user quits explicitly.
@@ -107,7 +129,10 @@ electron_1.ipcMain.handle('get-settings', () => {
 });
 // Handle event from renderer to save new settings.
 electron_1.ipcMain.on('set-settings', (event, settings) => {
-    saveSettings(settings);
+    // Verify the sender of the IPC message.
+    if (event.sender.getURL().startsWith('file://')) {
+        saveSettings(settings);
+    }
 });
 // Handle event from renderer to open the settings dialog.
 electron_1.ipcMain.on('open-settings-dialog', () => {
@@ -126,6 +151,7 @@ electron_1.ipcMain.on('open-settings-dialog', () => {
             preload: path.join(__dirname, '..', 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
+            sandbox: true,
         },
     });
     // Load the settings HTML file.

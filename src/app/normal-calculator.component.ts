@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ExpressionEvaluationService } from './expression-evaluation.service'; // Import the service
 
 @Component({
   selector: 'app-normal-calculator',
@@ -77,6 +78,9 @@ export class NormalCalculatorComponent {
   // The string currently displayed on the calculator screen.
   display = '';
 
+  // Inject the ExpressionEvaluationService
+  constructor(private expressionEvaluationService: ExpressionEvaluationService) {}
+
   // Appends a value to the display string.
   append(value: string) {
     this.display += value;
@@ -87,15 +91,10 @@ export class NormalCalculatorComponent {
     this.display = '';
   }
 
-  // Evaluates the expression in the display.
-  // Uses Function constructor for safer evaluation than eval().
-  // This prevents access to local scope, but still executes arbitrary code.
-  // For a production app, a proper expression parser is recommended.
+  // Evaluates the expression in the display using the safe expression parser.
   calculate() {
     try {
-      // Sanitize the expression to only allow numbers and basic operators.
-      const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
-      const result = new Function('return ' + sanitizedExpression)();
+      const result = this.expressionEvaluationService.evaluate(this.display);
       this.display = result.toString();
     } catch (e) {
       this.display = 'Error';
