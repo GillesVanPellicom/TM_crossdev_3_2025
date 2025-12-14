@@ -3,7 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-normal-calculator',
   template: `
-    <h2>Normal Calculator</h2>
+    <h2>Normal Mode</h2>
     <div class="calculator">
       <div class="display">{{ display }}</div>
       <div class="buttons">
@@ -18,7 +18,7 @@ import { Component } from '@angular/core';
         <button (click)="append('4')">4</button>
         <button (click)="append('5')">5</button>
         <button (click)="append('6')">6</button>
-        <button (click)="calculate()">=</button>
+        <button class="accent-button" (click)="calculate()">=</button>
         <button (click)="append('1')">1</button>
         <button (click)="append('2')">2</button>
         <button (click)="append('3')">3</button>
@@ -29,6 +29,12 @@ import { Component } from '@angular/core';
   `,
   styles: [
     `
+      h2 {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 20px;
+      }
       .calculator {
         width: 300px;
         border: 1px solid #ccc;
@@ -41,6 +47,11 @@ import { Component } from '@angular/core';
         text-align: right;
         font-size: 24px;
         margin-bottom: 10px;
+        min-height: 30px; /* Set a minimum height */
+        line-height: 30px; /* Vertically center the text */
+        overflow: hidden;
+        white-space: nowrap;
+        font-family: 'Courier New', Courier, monospace;
       }
       .buttons {
         display: grid;
@@ -53,7 +64,11 @@ import { Component } from '@angular/core';
         border: 1px solid #ccc;
         border-radius: 5px;
         cursor: pointer;
-        background-color: var(--accent-color, #e0e0e0);
+        background-color: #e0e0e0;
+      }
+      .accent-button {
+        background-color: var(--accent-color, #007bff);
+        color: white;
       }
     `,
   ],

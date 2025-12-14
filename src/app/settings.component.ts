@@ -5,7 +5,7 @@ import { ThemeService } from './theme.service';
   selector: 'app-settings',
   template: `
     <h2>Settings</h2>
-    <div>
+    <div class="setting-item">
       <label for="accent-color">Accent Color:</label>
       <input
         id="accent-color"
@@ -15,7 +15,26 @@ import { ThemeService } from './theme.service';
       />
     </div>
   `,
-  styles: [],
+  styles: [
+    `
+      h2 {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 24px;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .setting-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      label {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 16px;
+        margin-right: 10px;
+      }
+    `,
+  ],
 })
 export class SettingsComponent {
   constructor(public themeService: ThemeService) {}
