@@ -1,7 +1,7 @@
 <nav>
-  <a routerLink="/normal">Normal Calculator</a>
-  <a routerLink="/scientific">Scientific Calculator</a>
-  <a routerLink="/settings">Settings</a>
+  <button (click)="navigateTo('/normal')">Normal Calculator</button>
+  <button (click)="navigateTo('/scientific')">Scientific Calculator</button>
+  <button (click)="navigateTo('/settings')">Settings</button>
 </nav>
 
 <router-outlet></router-outlet>

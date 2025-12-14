@@ -1,15 +1,16 @@
 {
   "name": "crossdev3",
   "version": "0.0.0",
-  "main": "main.js",
+  "main": "build-electron/electron-main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "electron": "electron .",
-    "electron:dev": "concurrently \"npm run watch\" \"npm run electron\"",
+    "build:electron": "rm -rf build-electron && tsc --project tsconfig.electron.json",
+    "electron": "electron build-electron/electron-main.js",
+    "electron:dev": "concurrently \"npm run watch\" \"npm run build:electron && wait-on file:./dist/index.html && npm run electron\"",
     "package": "electron-builder"
   },
   "prettier": {

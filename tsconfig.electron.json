@@ -1,10 +1,14 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "types": ["node"]
+    "target": "es2020",
+    "esModuleInterop": true,
+    "types": ["node"],
+    "outDir": "build-electron",
+    "rootDir": "src"
   },
   "include": [
-    "src/main.ts"
+    "src/electron-main.ts",
+    "src/preload.js"
   ]
 }

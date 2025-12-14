@@ -18,7 +18,7 @@
           "options": {
             "outputPath": "dist",
             "index": "src/index.html",
-            "main": "src/app/app.ts",
+            "main": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
@@ -27,7 +27,8 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "baseHref": "./"
           },
           "configurations": {
             "production": {
@@ -72,7 +73,8 @@
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist",
-            "main": "src/app/app.ts",
+            "index": "src/index.html",
+            "main": "src/main.ts",
             "tsConfig": "tsconfig.electron.json",
             "assets": [
               "src/favicon.ico",
@@ -81,7 +83,8 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "baseHref": "./"
           }
         }
       }

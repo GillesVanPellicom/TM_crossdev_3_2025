@@ -23,8 +23,11 @@ export class ThemeService {
     const settings = await window.electronAPI.getSettings();
     if (settings && settings.accentColor) {
       this.accentColor = settings.accentColor;
-      this.applyAccentColor();
+    } else {
+      this.accentColor = '#3366FF'; // Default color
+      window.electronAPI.setSettings({ accentColor: this.accentColor });
     }
+    this.applyAccentColor();
   }
 
   setAccentColor(color: string) {

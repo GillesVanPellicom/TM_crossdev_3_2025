@@ -8,10 +8,12 @@
       "node"
     ]
   },
-  "files": [
-    "src/app/app.ts"
-  ],
+  "files": [],
   "include": [
-    "src/**/*.d.ts"
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/electron-main.ts"
   ]
 }
