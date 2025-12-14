@@ -35,7 +35,7 @@ function createWindow() {
     .catch(error => console.error('Failed to load index.html:', error));
 
   // Open DevTools for debugging, can be removed for production.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Dereference the window object when the window is closed.
   mainWindow.on('closed', function () {

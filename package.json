@@ -51,5 +51,29 @@
     "typescript": "~5.9.2",
     "vitest": "^4.0.8",
     "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.crossdev3.app",
+    "productName": "CrossDev3",
+    "copyright": "Copyright © 2024 ${author}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "build-electron/**/*",
+      "dist/**/*",
+      "preload.js"
+    ],
+    "win": {
+      "target": "squirrel",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "squirrelWindows": {
+      "iconUrl": "https://icon-icons.com/download-file?file=https%3A%2F%2Fimages.icon-icons.com%2F3053%2FICO%2F512%2Fcalculator_macos_bigsur_icon_190313.ico"
+    }
   }
 }
