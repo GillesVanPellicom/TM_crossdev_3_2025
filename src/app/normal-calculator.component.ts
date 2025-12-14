@@ -59,19 +59,29 @@ import { Component } from '@angular/core';
   ],
 })
 export class NormalCalculatorComponent {
+  // The string currently displayed on the calculator screen.
   display = '';
 
+  // Appends a value to the display string.
   append(value: string) {
     this.display += value;
   }
 
+  // Clears the display.
   clear() {
     this.display = '';
   }
 
+  // Evaluates the expression in the display.
+  // Uses Function constructor for safer evaluation than eval().
+  // This prevents access to local scope, but still executes arbitrary code.
+  // For a production app, a proper expression parser is recommended.
   calculate() {
     try {
-      this.display = eval(this.display);
+      // Sanitize the expression to only allow numbers and basic operators.
+      const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
+      const result = new Function('return ' + sanitizedExpression)();
+      this.display = result.toString();
     } catch (e) {
       this.display = 'Error';
     }

@@ -63,39 +63,54 @@ import { Component } from '@angular/core';
   ],
 })
 export class ScientificCalculatorComponent {
+  // The string currently displayed on the calculator screen.
   display = '';
 
+  // Appends a value to the display string.
   append(value: string) {
     this.display += value;
   }
 
+  // Clears the display.
   clear() {
     this.display = '';
   }
 
+  // Evaluates the expression in the display.
+  // Uses Function constructor for safer evaluation than eval().
+  // This prevents access to local scope, but still executes arbitrary code.
+  // For a production app, a proper expression parser is recommended.
   calculate() {
     try {
-      this.display = eval(this.display);
+      // Sanitize the expression to only allow numbers and basic operators.
+      const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
+      const result = new Function('return ' + sanitizedExpression)();
+      this.display = result.toString();
     } catch (e) {
       this.display = 'Error';
     }
   }
 
+  // Applies a scientific function to the current display value.
   scientific(func: string) {
     try {
       const value = parseFloat(this.display);
+      // Apply the selected scientific function.
       switch (func) {
         case 'sqrt':
           this.display = Math.sqrt(value).toString();
           break;
         case 'sin':
-          this.display = Math.sin(value).toString();
+          // Convert degrees to radians for Math.sin
+          this.display = Math.sin(value * Math.PI / 180).toString();
           break;
         case 'cos':
-          this.display = Math.cos(value).toString();
+          // Convert degrees to radians for Math.cos
+          this.display = Math.cos(value * Math.PI / 180).toString();
           break;
         case 'tan':
-          this.display = Math.tan(value).toString();
+          // Convert degrees to radians for Math.tan
+          this.display = Math.tan(value * Math.PI / 180).toString();
           break;
       }
     } catch (e) {

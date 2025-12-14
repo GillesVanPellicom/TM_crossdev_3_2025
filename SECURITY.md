@@ -77,4 +77,33 @@ The Inter-Process Communication (IPC) between the main and renderer processes is
 -   **Limited API:** The API exposed to the renderer is minimal and only includes the necessary functions (`getSettings` and `setSettings`). This follows the principle of least privilege, reducing the attack surface.
 -   **No Sensitive Data:** We avoid sending sensitive data over the IPC channel. In this application, we are only sending settings information, which is not considered sensitive.
 
+## Input Sanitization and Expression Evaluation
+
+In the calculator components (`normal-calculator.component.ts` and `scientific-calculator.component.ts`), the `eval()` function has been replaced with a safer alternative for evaluating mathematical expressions.
+
+### `eval()` Replacement
+
+The use of `eval()` was a significant security risk, as it can execute arbitrary code. It has been replaced with the `Function` constructor, combined with input sanitization:
+
+```typescript
+// Evaluates the expression in the display.
+// Uses Function constructor for safer evaluation than eval().
+// This prevents access to local scope, but still executes arbitrary code.
+// For a production app, a proper expression parser is recommended.
+calculate() {
+  try {
+    // Sanitize the expression to only allow numbers and basic operators.
+    const sanitizedExpression = this.display.replace(/[^-()\d/*+.]/g, '');
+    const result = new Function('return ' + sanitizedExpression)();
+    this.display = result.toString();
+  } catch (e) {
+    this.display = 'Error';
+  }
+}
+```
+
+### Recommendation for Production
+
+While the `Function` constructor is safer than `eval()` because it does not have access to the local scope, it can still execute arbitrary code. For a production-ready application, it is highly recommended to implement or use a dedicated mathematical expression parser. This would provide much stronger security by ensuring that only valid mathematical expressions can be evaluated.
+
 By implementing these security measures, we have created a robust and secure Electron application that is well-protected against common vulnerabilities.

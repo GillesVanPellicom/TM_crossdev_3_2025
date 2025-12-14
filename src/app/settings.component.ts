@@ -20,6 +20,8 @@ import { ThemeService } from './theme.service';
 export class SettingsComponent {
   constructor(public themeService: ThemeService) {}
 
+  // Handles the color input change event.
+  // Updates the accent color in the theme service.
   onColorChange(event: Event) {
     const color = (event.target as HTMLInputElement).value;
     this.themeService.setAccentColor(color);

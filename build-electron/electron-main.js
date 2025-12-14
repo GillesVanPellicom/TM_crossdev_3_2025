@@ -36,65 +36,91 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+// Keep a global reference of the window objects to prevent them from being garbage collected.
 let mainWindow;
 let settingsWindow;
+// Creates and configures the main application window.
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
+            // Use a preload script to expose controlled APIs to the renderer process.
+            // This is a security best practice over enabling nodeIntegration.
             preload: path.join(__dirname, '..', 'preload.js'),
+            // Isolate the renderer process from the main process for security.
             contextIsolation: true,
+            // Disable Node.js integration in the renderer process.
             nodeIntegration: false,
         },
     });
+    // Load the main HTML file of the Angular application.
     const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
     mainWindow.loadFile(indexPath)
         .catch(error => console.error('Failed to load index.html:', error));
+    // Open DevTools for debugging, can be removed for production.
     mainWindow.webContents.openDevTools();
+    // Dereference the window object when the window is closed.
     mainWindow.on('closed', function () {
         mainWindow = undefined;
     });
 }
+// Electron app lifecycle events.
+// Create the main window when the app is ready.
 electron_1.app.on('ready', createWindow);
+// Quit the app when all windows are closed, except on macOS.
 electron_1.app.on('window-all-closed', function () {
+    // On macOS, it's common for applications to stay active until the user quits explicitly.
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
     }
 });
+// Re-create the main window if the app is activated and no window is open.
 electron_1.app.on('activate', function () {
     if (!mainWindow) {
         createWindow();
     }
 });
-// Settings
+// --- Settings Management ---
+// Define the path for the settings file in the user's app data directory.
 const SETTINGS_FILE = path.join(electron_1.app.getPath('userData'), 'settings.json');
+// Reads settings from the JSON file.
+// Returns default settings if the file doesn't exist or is corrupted.
 function getSettings() {
     try {
-        return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+        const rawData = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+        return JSON.parse(rawData);
     }
     catch (error) {
-        return { accentColor: '#007bff' }; // Default
+        // Return a default settings object if reading fails.
+        return { accentColor: '#007bff' };
     }
 }
+// Writes the given settings object to the JSON file.
 function saveSettings(settings) {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings));
 }
+// --- IPC Handlers for Renderer Process ---
+// Handle request from renderer to get current settings.
 electron_1.ipcMain.handle('get-settings', () => {
     return getSettings();
 });
+// Handle event from renderer to save new settings.
 electron_1.ipcMain.on('set-settings', (event, settings) => {
     saveSettings(settings);
 });
+// Handle event from renderer to open the settings dialog.
 electron_1.ipcMain.on('open-settings-dialog', () => {
+    // If the settings window is already open, focus it.
     if (settingsWindow) {
         settingsWindow.focus();
         return;
     }
+    // Create a new modal window for settings.
     settingsWindow = new electron_1.BrowserWindow({
         width: 400,
         height: 300,
-        parent: mainWindow,
+        parent: mainWindow, // Attach to the main window.
         modal: true,
         webPreferences: {
             preload: path.join(__dirname, '..', 'preload.js'),
@@ -102,9 +128,11 @@ electron_1.ipcMain.on('open-settings-dialog', () => {
             nodeIntegration: false,
         },
     });
+    // Load the settings HTML file.
     const settingsPath = path.join(__dirname, '..', 'dist', 'settings.html');
     settingsWindow.loadFile(settingsPath)
         .catch(error => console.error('Failed to load settings.html:', error));
+    // Dereference the window object when it's closed.
     settingsWindow.on('closed', () => {
         settingsWindow = undefined;
     });
