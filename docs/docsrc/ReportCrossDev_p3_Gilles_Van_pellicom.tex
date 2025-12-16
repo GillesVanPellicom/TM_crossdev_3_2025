@@ -1,0 +1,250 @@
+\documentclass{report}
+\usepackage{amsmath, amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes, calc, fit}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\geometry{margin=1in}
+
+\title{Lab 3: Electron/Angular Testcase for macOS\\\large YT0798 Cross Development, Thomas More}
+\author{Gilles Van pellicom}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\clearpage
+
+% ---------------------------
+% Notes
+% ---------------------------
+\chapter*{Notes on the Process}
+\addcontentsline{toc}{chapter}{Notes}
+
+\section*{Reproducability}
+\begin{itemize}
+    \item \textbf{Development, Compilation \& Testing environment:}
+    \begin{itemize}
+        \item \textbf{Platform:} macOS Tahoe 26.2
+        \item \textbf{Hardware:} M3 Pro, 36\,GB LPDDR5
+        \item \textbf{IDE:} IntelliJ 2025.3
+    \end{itemize}
+\end{itemize}
+
+% ---------------------------
+% Testcase
+% ---------------------------
+\chapter{Testcase}
+
+\section{Requirements and Fulfillment}
+
+The test case is an Electron port of the Lab 1 calculator test case. It meets the following criteria:
+
+\begin{itemize}
+  \item \textbf{Dialog for selecting an accent color:} Settings dialog includes \texttt{<input type="color">} for accent color selection.
+  \item \textbf{File I/O for settings storage:} Selected accent color stored persistently using Node.js API.
+  \item \textbf{IPC call between main and render process:} \texttt{CalculatorService} and \texttt{SettingsService} are shared between pages \texttt{tab1}, \texttt{tab2} and settings modal. These services are located under \texttt{/src/app/services}
+  \item \textbf{Squirrel installer:} npm generated package for stand-alone deployment.
+  \item \textbf{Security:} Followed security best practices and hardened application.
+
+\end{itemize}
+
+\section{Portability Considerations}
+
+Since the project was built in Electron, the project was built with portability from the ground up. On my development machine the project required no special considerations. Some highlights of using Electron for portability:
+
+\begin{itemize}
+  \item \textbf{Node.js API via IPC:} Safe and controlled OS-API interaction via an OS-agnostic manner.
+  \item \textbf{OS-agnostic color picker:} Leveraged Ionic's \texttt{<input type="color">} to handle color selection, allowing Ionic to manage platform-specific details seamlessly.
+  \item \textbf{Full chromium browser and CSS support:} Transferable skill-set for people with web development experience.
+\end{itemize}
+
+\chapter{Security}
+
+This chapter outlines the security measures implemented in the Electron application to ensure safe inter-process communication (IPC) and protection against common vulnerabilities. The practices described follow the latest Electron security recommendations.
+
+\section{Electron Security Best Practices}
+
+The application follows the guidelines provided in the official Electron documentation. Key practices implemented are as follows:
+
+\begin{enumerate}
+    \item \textbf{Only load secure content:} All content is loaded from the local filesystem using the \texttt{file://} protocol. No remote content is loaded. Navigation attempts to external URLs are explicitly blocked via the \texttt{will-navigate} event handler.
+
+    \item \textbf{Disable Node.js integration for remote content:} Node.js integration is disabled for all renderer processes.
+
+    \item \textbf{Enable context isolation:} \texttt{contextIsolation} is enabled for all renderers to prevent untrusted scripts from accessing Electron APIs.
+
+    \item \textbf{Enable process sandboxing:} All renderers run in a sandboxed environment (\texttt{sandbox: true} in \texttt{webPreferences}).
+
+    \item \textbf{Use \texttt{ses.setPermissionRequestHandler()} in sessions with remote content:} The application does not load remote content, so this is not applicable.
+
+    \item \textbf{Do not disable web security:} The default \texttt{webSecurity} setting is preserved.
+
+    \item \textbf{Define a Content Security Policy:} The application enforces a strict CSP, allowing scripts only from the application's origin (\texttt{script-src 'self'}), fully preventing \texttt{eval()} and \texttt{new Function()} usage.
+
+    \item \textbf{Do not enable \texttt{allowRunningInsecureContent}:} This option is not enabled; the default setting is preserved.
+
+    \item \textbf{Do not enable experimental features:} No experimental features are enabled.
+
+    \item \textbf{Do not use \texttt{enableBlinkFeatures}:} This option is not used.
+
+    \item \textbf{Do not use \texttt{<webview>} allowpopups:} The \texttt{\textless webview\textgreater} tag is not used.
+
+    \item \textbf{Verify \texttt{<webview>} options and parameters:} The \texttt{\textless webview\textgreater} tag is not used.
+
+    \item \textbf{Disable or limit navigation:} Navigation is restricted to \texttt{file://} URLs. Any attempt to navigate to an external URL is blocked.
+
+    \item \textbf{Disable or limit creation of new windows:} New window creation is disabled using \texttt{setWindowOpenHandler}.
+
+    \item \textbf{Do not use \texttt{shell.openExternal} with untrusted content:} \texttt{shell.openExternal} is not used.
+
+    \item \textbf{Use a current version of Electron:} The project is kept up-to-date with the latest Electron version to ensure all known vulnerabilities are patched.
+
+    \item \textbf{Validate the sender of all IPC messages:} IPC messages are validated to ensure that only windows with \texttt{file://} URLs can trigger IPC calls.
+
+    \item \textbf{Avoid usage of \texttt{file://} protocol when possible:} Currently, the application uses \texttt{file://} to load local content. A custom protocol could be used in the future for improved security.
+
+    \item \textbf{Check which Electron Fuses can be changed:} Electron Fuses could be used to further harden the application. This has not yet been implemented.
+
+    \item \textbf{Do not expose Electron APIs to untrusted web content:} Electron APIs are not exposed to untrusted content. Only a limited API is exposed to the renderer via a preload script and \texttt{contextBridge}.
+\end{enumerate}
+
+\section{Eval function}
+The javascript function used to evaluate mathematical expressions can be utilised for injection. Since the use of this function is not allowed by our Content Security Policy, a local evaluator was provided.
+
+
+% ---------------------------
+% Chapter 1
+% ---------------------------
+\chapter{Toolchain Setup and Workflow}
+
+\section{Prerequisites}
+The Electron framework requires Node.js as a prerequisite.
+On macOS, Node.js was installed using the Homebrew package manager:
+
+\begin{verbatim}
+brew install node
+\end{verbatim}
+Subsequently, Electron was installed globally via \texttt{npm}:
+
+\begin{verbatim}
+npm install -g electron
+\end{verbatim}
+To verify that the installation was successful, the Electron version was checked:
+
+\begin{verbatim}
+electron --version
+\end{verbatim}
+
+\section{Project Initialization}
+A project directory was created and initialized with \texttt{npm} as follows:
+
+\begin{verbatim}
+mkdir my-electron-app
+cd my-electron-app
+npm init -y
+\end{verbatim}
+Electron was then added as a development dependency:
+
+\begin{verbatim}
+npm install --save-dev electron
+\end{verbatim}
+A start script was added to \texttt{package.json} to facilitate launching the application:
+
+\begin{verbatim}
+"scripts": {
+  "start": "electron ."
+}
+\end{verbatim}
+The application was launched to confirm that the setup was functional:
+
+\begin{verbatim}
+npm start
+\end{verbatim}
+
+\section{Running the Electron Application}
+The project provides several \texttt{npm} scripts to facilitate development and execution of the Electron application. The primary scripts relevant to running the application are described below.
+
+\subsection{Development Mode}
+To run the application in development mode, the following script is used:
+
+\begin{verbatim}
+npm run electron:dev
+\end{verbatim}
+
+This script performs several tasks concurrently:
+
+\begin{enumerate}
+    \item \texttt{npm run watch} — Continuously rebuilds the Angular frontend in development mode.
+    \item \texttt{npm run build:electron} — Compiles the Electron main process using the TypeScript configuration defined in \texttt{tsconfig.electron.json}.
+    \item \texttt{wait-on file:./dist/index.html} — Waits until the frontend build is complete before starting Electron.
+    \item \texttt{npm run electron} — Launches the Electron application, using the compiled main process located at \texttt{build-electron/electron-main.js}.
+\end{enumerate}
+This setup allows simultaneous rebuilding of the frontend and backend while keeping the Electron application in sync with the latest changes.
+
+\subsection{Manual Launch}
+For manual execution, the Electron application can also be started directly with:
+
+\begin{verbatim}
+npm run electron
+\end{verbatim}
+This command launches the application using the already compiled Electron main process and assumes the frontend files are available in the \texttt{dist} directory.
+
+\section{Squirrel Installer and Packaging}
+
+\subsection{Build Configuration}
+The project uses \texttt{electron-builder} to create distributable packages.
+For Windows, the target installer format is \texttt{Squirrel}, which allows automatic updates and easy installation.
+
+The relevant build configuration in \texttt{package.json} is as follows:
+
+\begin{verbatim}
+"build": {
+  "appId": "com.crossdev3.app",
+  "productName": "CrossDev3",
+  "directories": { "output": "release" },
+  "files": [
+    "build-electron/**/*",
+    "dist/**/*",
+    "preload.js"
+  ],
+  "win": {
+    "target": "squirrel",
+    "icon": "build/icon.ico"
+  },
+  "squirrelWindows": {
+    "iconUrl": "https://icon-icons.com/download-file?file=https%3A%2F%2Fimages.icon-icons.com%2F3053%2FICO%2F512%2Fcalculator_macos_bigsur_icon_190313.ico"
+  }
+}
+\end{verbatim}
+
+This configuration specifies:
+
+\begin{itemize}
+    \item \texttt{appId} and \texttt{productName} for identifying the application.
+    \item \texttt{directories.output}, which sets the folder where packaged installers will be saved.
+    \item Files and directories to include in the package (\texttt{build-electron}, \texttt{dist}, and \texttt{preload.js}).
+    \item Windows-specific build target (\texttt{squirrel}) and icon.
+    \item Icon URL for Squirrel updates.
+\end{itemize}
+
+\subsection{Building the Installer}
+The installer is created using the following sequence of commands:
+
+\begin{enumerate}
+    \item \texttt{npm run build} — Builds the Angular frontend.
+    \item \texttt{npm run build:electron} — Compiles the Electron main process.
+    \item \texttt{npm run package} — Invokes \texttt{electron-builder}, producing the installer files.
+\end{enumerate}
+Upon completion, the Squirrel installer and other distributables can be found in the \texttt{/release} directory under the appropriate architecture folder.
+
+\section{Outcome}
+
+A working native-macOS build of the testcase was achieved utilising Electron/Angular, and was tested on device. The test method was a macOS .app file, which equates to a standard desktop app, since macOS doesn't utilise installers for regular apps. The installers (.pkg) files are reserved for more intrusive software packages such as antivirus software.
+
+A Screenshot of the successful deployment on device is provided in the \texttt{screenshots} folder.
+
+\end{document}
