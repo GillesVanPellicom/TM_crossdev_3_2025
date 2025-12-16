@@ -24,7 +24,7 @@
 \chapter*{Notes on the Process}
 \addcontentsline{toc}{chapter}{Notes}
 
-\section*{Reproducability}
+\section*{Reproducibility}
 \begin{itemize}
     \item \textbf{Development, Compilation \& Testing environment:}
     \begin{itemize}
@@ -52,13 +52,39 @@ The test case is an Electron port of the Lab 1 calculator test case. It meets th
 
 \end{itemize}
 
+\section{Use of Node.js APIs and IPC Mechanisms}
+
+This project makes deliberate and constrained use of Node.js APIs, following Electron security best practices. All Node.js-specific functionality is confined to trusted execution contexts, namely the main process and the preload script, both of which run in a Node.js-capable environment. The renderer process is intentionally isolated from direct Node.js access.
+
+\subsection{Node.js API Usage in the Main Process}
+
+The main process, implemented in \texttt{src/electron-main.ts}, executes in a full Node.js environment and is responsible for system-level interactions. Several core Node.js modules and globals are used in this context.
+\\\\
+File system operations are performed via the \texttt{fs} module. Specifically, \texttt{fs.readFileSync} is used to synchronously load application settings from persistent storage, while \texttt{fs.writeFileSync} serializes and writes updated settings back to disk. These operations are typical for configuration management in desktop applications.
+\\\\
+Path manipulation is handled using the \texttt{path} module. Calls to \texttt{path.join} are used to construct platform-independent file system paths, ensuring compatibility across operating systems such as Windows, macOS, and Linux.
+\\\\
+The application also relies on Node.js global objects for environment awareness. The \texttt{process.platform} property is queried to implement platform-specific behavior, for example when handling application lifecycle events. Additionally, the \texttt{\_\_dirname} global is used in conjunction with \texttt{path.join} to resolve absolute paths relative to the location of the executing file.
+
+\subsection{Node.js API Usage in the Preload Script}
+
+The preload script, located at \texttt{src/preload.js}, runs in a privileged context that bridges the gap between the renderer and the main process. While it has access to browser APIs, it also retains controlled access to Node.js functionality.
+\\\\
+In this file, the Node.js CommonJS module system is used via \texttt{require('electron')}. Although the imported module is provided by Electron, the \texttt{require} function itself is a fundamental Node.js API and illustrates that the preload script operates within a Node.js-enabled environment.
+
+\subsection{Renderer Process Isolation and IPC}
+
+In contrast, the renderer process (including \texttt{main.ts} and Angular components) does not have direct access to Node.js APIs. This restriction is enforced by disabling Node integration (\texttt{nodeIntegration: false}) and is a critical security measure.
+\\\\
+Whenever the renderer requires functionality that depends on Node.js capabilities, such as file system access, it must communicate with the main process through Inter-Process Communication (IPC). These IPC channels are explicitly exposed by the preload script, ensuring a clear separation of concerns and minimizing the attack surface of the application.
+
 \section{Portability Considerations}
 
 Since the project was built in Electron, the project was built with portability from the ground up. On my development machine the project required no special considerations. Some highlights of using Electron for portability:
 
 \begin{itemize}
   \item \textbf{Node.js API via IPC:} Safe and controlled OS-API interaction via an OS-agnostic manner.
-  \item \textbf{OS-agnostic color picker:} Leveraged Ionic's \texttt{<input type="color">} to handle color selection, allowing Ionic to manage platform-specific details seamlessly.
+  \item \textbf{OS-agnostic color picker:} Leveraged Angular's \texttt{<input type="color">} to handle color selection, allowing Electron to manage platform-specific details seamlessly.
   \item \textbf{Full chromium browser and CSS support:} Transferable skill-set for people with web development experience.
 \end{itemize}
 
@@ -197,8 +223,8 @@ This command launches the application using the already compiled Electron main p
 
 \subsection{Build Configuration}
 The project uses \texttt{electron-builder} to create distributable packages.
-For Windows, the target installer format is \texttt{Squirrel}, which allows automatic updates and easy installation.
-
+For Windows, the target installer format is \texttt{Squirrel}, which allows automatic updates and easy installation. For macOS however, \texttt{Squirrel} is not used since this does not properly integrate with modern Apple-enforced macOS code signing, notarization and M-type silicon. The standard electron builder was used instead.
+\\\\
 The relevant build configuration in \texttt{package.json} is as follows:
 
 \begin{verbatim}
@@ -244,7 +270,7 @@ Upon completion, the Squirrel installer and other distributables can be found in
 \section{Outcome}
 
 A working native-macOS build of the testcase was achieved utilising Electron/Angular, and was tested on device. The test method was a macOS .app file, which equates to a standard desktop app, since macOS doesn't utilise installers for regular apps. The installers (.pkg) files are reserved for more intrusive software packages such as antivirus software.
-
+\\\\
 A Screenshot of the successful deployment on device is provided in the \texttt{screenshots} folder.
 
 \end{document}
